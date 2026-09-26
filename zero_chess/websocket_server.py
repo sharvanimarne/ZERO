@@ -54,12 +54,15 @@ class UCIProcess:
         await self._read_until("readyok")
         return self.process
 
-    async def best_move(self, fen: str, move_time: int) -> UCIResult:
+    async def best_move(self, fen: str, move_time: int, nodes: int | None = None) -> UCIResult:
         """Acquire the best move from the engine, executing a transaction under lock."""
         async with self.lock:
             await self.ensure()
             await self._send(f"position fen {fen}")
-            await self._send(f"go movetime {max(100, int(move_time))}")
+            if nodes is not None and int(nodes) > 0:
+                await self._send(f"go nodes {int(nodes)}")
+            else:
+                await self._send(f"go movetime {max(100, int(move_time))}")
             evaluation = 0.0
             nodes = 0
             while True:
@@ -217,7 +220,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
             payload = await websocket.receive_text()
             message = json.loads(payload)
             try:
-                result = await engine.best_move(message["fen"], int(message.get("move_time", 1000)))
+                nodes_raw = message.get("nodes")
+                nodes = int(nodes_raw) if nodes_raw is not None else None
+                result = await engine.best_move(message["fen"], int(message.get("move_time", 1000)), nodes)
                 await websocket.send_json({"move": result.move, "evaluation": result.evaluation, "nodes": result.nodes})
             except Exception as sub_exc:
                 await engine.close()  # Force process recovery on transaction failures

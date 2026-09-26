@@ -39,6 +39,7 @@ export default function PlayPage() {
   const [gameStarted, setGameStarted] = useState(false);
   const [playerColor, setPlayerColor] = useState<"w" | "b">("w");
   const [timeControl, setTimeControl] = useState<number>(600); // 10 minutes default
+  const [simulations, setSimulations] = useState<number>(3200); // MCTS simulations per engine move
   const [whiteClock, setWhiteClock] = useState(600);
   const [blackClock, setBlackClock] = useState(600);
   const [orientation, setOrientation] = useState<"white" | "black">("white");
@@ -107,7 +108,7 @@ export default function PlayPage() {
     if (!online || game.isGameOver()) return;
     setThinking(true);
     engine
-      .requestBestMove({ fen: game.fen(), move_time: 1000 })
+      .requestBestMove({ fen: game.fen(), move_time: 1000, nodes: simulations })
       .then((response) => {
         if (response.move && response.move !== "0000") {
           const from = response.move.slice(0, 2) as Square;
@@ -421,7 +422,29 @@ export default function PlayPage() {
               </div>
 
               <div>
-                <h3 className="text-sm font-bold text-zinc-300 mb-2">2. Select Side</h3>
+                <h3 className="text-sm font-bold text-zinc-300 mb-2">2. Engine Strength (simulations)</h3>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {[100, 200, 400, 800, 1600, 3200].map((sims) => (
+                    <button
+                      key={sims}
+                      onClick={() => setSimulations(sims)}
+                      className={`py-2 text-xs font-bold rounded transition-all border ${
+                        simulations === sims
+                          ? "bg-zero-accent/15 border-zero-accent text-white"
+                          : "bg-zero-panel2 border-transparent text-zinc-400 hover:text-white"
+                      }`}
+                    >
+                      {sims}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-1 text-[11px] text-zinc-500">
+                  {simulations} sims ≈ {simulations <= 200 ? "under 1s" : simulations <= 800 ? "~1s" : simulations <= 1600 ? "~3s" : "~6s"} per engine move on GPU
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-bold text-zinc-300 mb-2">3. Select Side</h3>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     disabled={gameStarted}
