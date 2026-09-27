@@ -1,6 +1,7 @@
 export type EngineRequest = {
   fen: string;
   move_time: number;
+  nodes?: number;
 };
 
 export type EngineResponse = {
